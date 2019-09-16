@@ -1,0 +1,17 @@
+# Visual Studio Project 관련 #
+##############################
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.suo
+Browse.VC.db
+*.ipch
+*.exe
+*.ilk
+*.log
+*.pdb
+*.obj
+*.idb
+*.lastbuildstate
+*.tlog
