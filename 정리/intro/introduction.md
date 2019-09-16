@@ -48,3 +48,66 @@
 
 - Hard Realtime : miss가 매우 큰 영향
 - Soft Realtime : miss가 경미한 영향
+
+## Embedded software architecture
+
+- Round Robin
+- Round Robin with Interrupt
+- Function queue scheduling
+- Real-time operating system
+- Embedded Linux
+
+### Device Handling의 두 단계
+
+- Device check routine : 디바이스에서 어떤 신호를 발생시키는지를 확인한다. 디바이스에 발생한 신호를 처리하는 것을 Interrupt Service Routine(ISR)라고 한다. 디바이스에서 신호가 발생한 뒤 빠른 시간내에 ISR를 실행하는 것이 중요하며, ISR 실행시간 역시 짧은 것이 좋다.
+- Data processing routine : 디바이스에서 데이터를 읽어내어 처리한다. Task routine 이라고 한다. 주로 ISR보다 긴 시간이 사용된다.
+
+### Round Robin 방식
+
+![1](image/1.png)
+
+말 그대로 모든 디바이스 장치에 대해서 돌아가면서(Round Robin) 확인하고 데이터를 처리하는 것이다. 가장 간단한 형태이다. 가장 간단한 형태이니만큼 간단한 시스템에서만 사용된다. 예를 들어 A~J까지의 10개의 장치가 존재하고 각 장치의 ISR가 1ms, 각 장치로부터의 task routine 처리 시간이 100ms라면, J장치에서 신호가 발생했을때 J 장치의 ISR를 처리하는 시간은 909ms가 지난 후이다(현재 프로그램 코드가 빨간색 선에 있다고 가정했을때). 이 같은 구조는 ISR의 처리시간을 매우 많이 지연시킬 수 있는 구조이다.
+
+### Round Robin with Interrupt 방식
+
+![2](image/2.png)
+
+하드웨어에서 신호가 발생했을 때 해당 장치의 신호를 처리하는 ISR가 Interrupt하여 ISR가 우선 처리되도록 하는 방식. 특정 장치에 대한 인터럽트 처리를 함수로 떼어내어 처리한다. 그리고 이에 대한 우선순위를 높게 부여한다. 하드웨어에서 인터럽트가 발생했을때, 해당 하드웨어의 ISR가 프로그램 실행을 preemption한다.  
+여기서 각 ISR간의 priority가 있을 수 있다. 그러나 task routine간의 priority는 모두 동일하기 때문에, 각 task routine은 FIFO 순서대로 처리된다.
+
+### Function Queue Scheduling 방식
+
+![3](image/3.png)
+
+task routine 간에도 priority를 부여한 방식이다. task routine도 별도의 function 형태를 갖는다. 우선 ISA는 다른 task routine보다 높은 우선순위를 갖는다. 대신 task routine간에도 우선순위가 있어서 높은 우선순위를 갖는 task routine이 먼저 실행된다.  
+그러나 task routine간에 `preemption`이 지원되지 않는다. 따라서 낮은 우선순위의 task routine이 매우 긴 시간동안 실행되어야 할 때, 높은 우선순위의 task routine이 function queue에 들어오게 되면 높은 우선순위 task의 실행시간에 영향이 있을수 있다.
+
+### Real-time operating systems
+
+![4](image/4.png)
+
+마침내 task routine간의 preemption이 지원되는 형태이다. 스케쥴러가 task의 실행 순서를 결정한다. 특정 task가 정해진 deadline 이내에 실행됨을 보장한다.
+
+### Embedded Linux
+
+원래는 데스크탑 또는 서버 시스템을 위해서 개발된 os이다. 그러나 다음과 같은 장점이 있어서 임베디드 시스템에도 사용하려는 시도가 있다.
+
+- open source
+- low cost : 개발, 훈련 및 고용 비용, 로열티 비용이 거의 없다
+
+데스크탑 버전과의 차이
+
+- 데스트탑 버전의 필요없는 기능을 제거하여 사이즈를 줄였다(커널 컴파일)
+- 필요한 기능을 추가하기도 한다
+
+## Platform
+
+하드웨어 프로그래밍과 응용프로그램 개발 사이에 또하나의 계층(Platform software)을 추가하여 하드웨어 프로그래밍 환경을 숨기는 것(안드로이드, 타이젠 등등). 따라서 응용프로그래머들이 효과적으로 프로그래밍 할 수 있는 인터페이스를 제공한다.
+
+### Android software stack
+
+1. Linux Kernel : 메모리 관리, cpu 관리, 네트워크 관리 등등..
+2. Libraries : c/c++ libraries
+3. android run time
+4. Application framework : 클래스와 변수 등등
+5. Application
