@@ -23,7 +23,7 @@ microC/os2에서는 총 64개의 Task가 생성될 수 있다. 이 중 priority 
 
 ![2](image/2.png)
 
-- Dominant : Task가 아직 OS에 등록되지 않은 상태. OSTaskCreate(), OSTaskCreateExt()과 같은 함수를 이용해서 OS에 등록될 수 있다. 위 두 함수 호출시 실행될 수 있는 Candidate가 된다(Ready 상태). OSTaskCreateExt()는 Task를 생성할 때 추가적으로 인자를 전달할 수 있게 해준다.
+- Domant : Task가 아직 OS에 등록되지 않은 상태. OSTaskCreate(), OSTaskCreateExt()과 같은 함수를 이용해서 OS에 등록될 수 있다. 위 두 함수 호출시 실행될 수 있는 Candidate가 된다(Ready 상태). OSTaskCreateExt()는 Task를 생성할 때 추가적으로 인자를 전달할 수 있게 해준다.
 - Ready : Scheduler에 의해 Running 상태로 바뀔 수 있는 상태. Running에 대한 candidate
 - Running : cpu 자원을 확보하고 실행 중인 상태
 - Delay : 실행을 멈추고 일정기간 동안 기다리는 상태. suspend 함수 호출로 만들 수 있다. 스케줄링 될 수 없다. 일정 기간이 지난 후에는 다시 ready 상태로 돌아간다.
