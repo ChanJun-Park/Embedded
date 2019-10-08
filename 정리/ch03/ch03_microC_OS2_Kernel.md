@@ -179,3 +179,123 @@ y값을 왼쪽으로 3번 쉬프트 한 이유는 그룹번호에 해당하는 �
 이를 이진수로 변환하면 11100100 이 된다. 맨 마지막에서 **2**번째 비트가 1로 셋팅되어 있다. 즉, 이 비트에 해당하는 task가 우리가 찾는 task 이다. 다시 컴퓨터가 이 비트를 찾게 하려면 `OSUnMapTbl[0xE4]`를 확인하면 된다. 이는 **2**다. 위에서 찾은 **2**와 동일하다.
 
 이제 숫자 3은 그룹을 나타내기에 왼쪽으로 3번 쉬프트하고, 2는 그냥 더해주어서 최종적으로 26을 구했다. 즉 26번 Task가 현재 Ready 상태에 있는 task 중 가장 우선순위가 높다.
+
+## Task Scheduling - scheduling
+
+&micro;C/OS2 에서 스케줄링을 하기 위해서 함수들을 알아보자.
+
+- OS_Sched() : 태스크 수준의 스케줄링 함수. 어떤 테스크가 Running 상태에서 waiting 상태로 이동할 때, 다음 run 될 테스크를 결정하기 위해서 사용한다.
+- OSIntExit() : ISR 수준의 스케줄링 함수. 하드웨어 인터럽트 또는 주기적인 타이머 인터럽트 이후 스케줄링을 위해서 사용한다.
+
+### 태스크 레벨 스케줄링 함수 : OS_Sched()
+
+```c
+void OS_Sched(void)
+{
+    INT8U y;
+    OS_ENTER_CRITICAL();
+    if ((OSLockNesting | OSIntNesting) == 0) {
+        y = OSUnMapTbl[OSRdyGrp];
+        OSPrioHighRdy = (INT8U)((y << 3) + OSUnMapTbl[OSRdyTbl[y]]);
+        if (OSPrioHighRdy != OSPrioCur) {
+            OSTCBHighRdy = OSTCBPrioTbl[OSPrioHighRdy];
+            OSCtxSwCtr++;
+            OS_TASK_SW();
+        }
+    }
+    OS_EXIT_CRITICAL();
+}
+```
+
+![참고](image/3.png)
+
+OS_Sched() 함수 호출시 Ready 상태에 있는 Task 중 가장 우선순위가 높은 Task를 찾고, 현재 Task와 비교해서 우선순위가 다르면 해당 Task로 switch 한다.
+
+#### OS_TASK_SW() 를 수행하기 전 먼저 Context switch 수행
+
+Context switch가 일어나야 하는 경우, 일단 지금 실행되고 있던 Task의 Context를 저장해야 한다. 실행에 필요한 register 값을 테스크가 사용하는 스택에 저장시킨다. 그 다음 스택 포인터를 해당 Task의 TCB에 저장한다. 이 후에 실행될 Task의 TCB에서 스택 포인터를 복구한 뒤, 해당 Task의 스택에서 Context(Register) 값들을 pop 시킨다.
+
+![12](image/12.png)
+![13](image/13.png)
+![14](image/14.png)
+
+#### 태스크 수준 context switch
+
+- OS_TASK_SW() 함수 내에서 실행되는 코드?
+
+```c
+void OSCtxSw(void)
+{
+    Values of R1, R2, R3, R4 and so on are pushed to stack;
+    OSTCBCur -> OSTCBStkPtr = SP;
+    OSTCBCur = OSTCBHighRdy;
+    SP = OSTCBCur -> OSTCBStkPtr;
+    Values of R1, R2, R3, R4 and so on are poped;
+}
+```
+
+### ISR에서의 스케줄링
+
+#### ISR의 구조
+
+![15](image/15.png)
+
+일단 ISR이 실행되기 전, 그 전에 실행되던 Task의 Context를 저장한다. 그 다음 ISR이 실행되기 전 OSIntEnter() 함수가 실행된다. 그 다음 ISR이 실행된다. 그리고 ISR에서 스케줄링을 실행하는 부분은 OSIntExit() 함수부분이다.
+
+```c
+void OSIntExit (void)
+{
+    OS_ENTER_CRITICAL();
+    if ((--OSIntNesting | OSLockNesting) == 0) {
+        OSIntExitY = OSUnMapTbl[OSRdyGrp];
+        OSPrioHighRdy = (INT8U)((OSIntExitY << 3) +
+        OSUnMapTbl[OSRdyTbl[OSIntExitY]]);
+        if (OSPrioHighRdy != OSPrioCur) {
+            OSTCBHighRdy = OSTCBPrioTbl[OSPrioHighRdy];
+            OSCtxSwCtr++;
+            OSIntCtxSw();
+        }
+    }
+    OS_EXIT_CRITICAL();
+}
+```
+
+이 함수의 내용은 태스크 레벨 스케줄링의 OS_Sched() 함수와 거의 유사하다. 다만 차이점은 내부에서 Task를 switch 하는 OS_TASK_SW(), OSIntCtxSw()에 있다. 이전 태스크의 Context는 OSIntExit() 함수를 호출하기 전에 저장하기 때문에 이 부분에 대한 코드가 OSIntCtxSw()에는 존재하지 않는다는 것이다.
+
+```c
+void OSIntCtxSw(void)
+{
+    Call_OSTaskSwHook();
+    OSTCBCur = OSTCBHighRdy;
+    OSPrioCur = OSPrioHighRdy;
+    SP = OSTCBHighRdy -> OSTCPStkPtr;
+    POP R4, R3, R2, R1 from the task's stack;
+    Execute a return from interrupt instruction;
+}
+```
+
+### Clock Tick
+
+&micro;C/OS 2에서는 일정 주기마다 타이머 인터럽트가 발생한다. 한 타이머 인터럽트에서 다음 타이머 인터럽트가 발생하는 간격을 1 Clock Tick이라고 한다. Task를 일정 기간동안 Waiting 상태로 유지하는 것이나 타임아웃을 발생시키기 위해서 사용된다.
+타이머 인터럽트도 그에 대응하는 ISR을 수행하게 된다. 그에 따라 일정 주기마다 스케줄링이 실행되어 높은 우선순위의 Ready Task가 실행되게 할 수 있다.
+
+```c
+void OSTimeTick(void)
+{
+    while(ptcb -> OSTCBPrio != OS_IDLE_PRIO) {
+        OS_ENTER_CRITICAL();
+        if (ptcb -> OSTCBDly != 0) {
+            if (--ptcb->OSTCBDly == 0) {
+                if (!(ptcb->OSTCBStat & OS_STAT_SUSPEND)) {
+                    OSRdyGrp |= ptcb->OSTCBBitY;
+                    OSRdyTbl[ptcb->OSTCBY] |= ptcb->OSTCBBitX;
+                } else {
+                    ptcb->OSTCBDly = 1;
+                }
+            }
+        }
+        ptcb = ptcb->OSTCBNext;
+        OS_EXIT_CRITICAL();
+    }
+}
+```
