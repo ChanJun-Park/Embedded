@@ -260,7 +260,7 @@ void OSIntExit (void)
 }
 ```
 
-이 함수의 내용은 태스크 레벨 스케줄링의 OS_Sched() 함수와 거의 유사하다. 다만 차이점은 내부에서 Task를 switch 하는 OS_TASK_SW(), OSIntCtxSw()에 있다. 이전 태스크의 Context는 OSIntExit() 함수를 호출하기 전에 저장하기 때문에 이 부분에 대한 코드가 OSIntCtxSw()에는 존재하지 않는다는 것이다.
+이 함수의 내용은 태스크 레벨 스케줄링의 OS_Sched() 함수와 거의 유사하다. 다만 차이점은 내부에서 Task를 switch 하는 OSCtxSw(), OSIntCtxSw()에 있다. 이전 태스크의 Context는 OSIntExit() 함수를 호출하기 전에 저장하기 때문에 이 부분에 대한 코드가 OSIntCtxSw()에는 존재하지 않는다는 것이다.
 
 ```c
 void OSIntCtxSw(void)
