@@ -195,7 +195,7 @@ int main()
 - 연결선 하나는 클록 신호를 주고받기 위한 것으로 SCL이라고 한다.
 - 연결선의 다른 하나는 데이터 신호를 주고받기 위한 것으로 SDA라고 한다.
 - 여러개의 Slave Device를 제어하는 Multi arbitration을 제공한다.
-- 모든 Slave Device에게 신호를 전달하는 Broad Casting도 제공된다.
+- Slave 지정은 7비트 어드레스를 이용하며, 모든 Slave Device에게 신호를 전달하는 Broad Casting도 제공된다.
 
 ![10](image/10.png)
 
@@ -223,7 +223,7 @@ I2C에서 사용하는 데이터 포맷은 READ, WRITE 2가지로 구분할 수 
 
 ### Jkit-128-1 에서 온도센서 연결 개념
 
-- aTs... 를 사용
+- aTS75 를 사용
 - 7비트 slave address를 지원
 - 상위 4개의 비트는 1001로 고정되어 있음
 - 하위 3개의 비트는 000, 100 둘 중의 하나를 사용
@@ -329,7 +329,7 @@ void write_twi_1byte_nopreset(char reg, char data)
 ![21](image/21.png)
 
 - START 신호 전송
-  - TWCR : TWINT, TWEA ,TWSTA 비트 설정
+  - TWCR : TWINT, TWEN, TWSTA 비트 설정
   - TWSR : TWSR & 0xF8 == 0x08 이 될 때까지 대기
 - 데이터를 송수신할 Slave address, read 비트 설정
   - TWDA : Slave address + read (0b1001100?) 설정
